@@ -1,4 +1,6 @@
+const PdfPrinter = require('pdfmake');
 const database = require('../models');
+const moment = require("moment");
 
 class AlunoController {
 
@@ -247,6 +249,131 @@ class AlunoController {
         }
       );
       return res.status(200).json(matriculas);
+    }catch(err){
+      return res.status(500).json(err.message);
+    }
+  }
+
+  static async listarAlunosRelatorio(req, res){
+    console.log("Entrei aqui")
+    try{
+      const alunos = await database.Alunos.findAll({
+        include: [
+          {
+            model: database.Enderecos,
+            attributes: ['logradouro', 'numero', 'bairro', 'cep', 'complemento', 'cidade'],
+            include: [{
+              model: database.Estados,
+              attributes: ['id', 'uf', 'nome']
+            }]
+          },
+          {
+            model: database.Escolas,
+            attributes: ['nome']
+          },
+          {
+            model: database.Responsaveis,
+            attributes: ['responsavel', 'telefone', 'email']
+          }
+        ]
+      });
+
+      const fonts = {
+        Helvetica: {
+          normal: "Helvetica",
+          bold: "Helvetica-Bold",
+          italics: "Helvetica-Oblique",
+          bolditalics: "Helvetica-BoldOblique"
+        }
+      };
+      const printer = new PdfPrinter(fonts);
+
+      const body = [];
+  
+      for await(let aluno of alunos){
+        const rows = new Array();
+        rows.push(aluno.id);
+        rows.push(aluno.nome);
+        rows.push(aluno.telefone);
+        rows.push(aluno.email);
+        rows.push(aluno.turno);
+        rows.push(aluno.idResponsavel ? aluno.Responsavei.responsavel : '');
+        body.push(rows);
+      }
+
+      const docDefinitions = {
+        defaultStyle: {
+          fontSize: 10,
+          font: "Helvetica"
+        },
+        content: [
+          {
+            columns: [
+              {text: "Listagem Geral de Alunos", style: "header"},
+              {text: moment().format("DD/MM/YYYY hh:mm:ss\n\n"), style: "dateRight"},
+            ]
+          },
+          {
+            text: " "
+          },
+          {
+            table: {
+              widths: ['auto', 'auto', 100, 'auto', 'auto', 'auto'],
+              body: [
+                [
+                  {text: "Id", style: 'tableHeader'},
+                  {text: "Nome", style: 'tableHeader'}, 
+                  {text: "Telefone", style: 'tableHeader'}, 
+                  {text: "Email", style: 'tableHeader'}, 
+                  {text: "Turno", style: 'tableHeader'},
+                  {text: "Responsável", style: 'tableHeader'}
+                ], 
+                  ...body
+              ]
+            },
+            layout: 'lightHorizontalLines',
+          },
+        ],
+        footer: [{text: "Relatório SysLyra", style: "footer"}],
+        styles: {
+          header: {
+            fontSize: 12,
+            bold: true
+          },
+          dateRight: {
+            alignment: 'right'
+          },
+          tableHeader: {
+            bold: true,
+            fontSize: 10,
+            color: 'black',
+          },
+          footer: {
+            fontSize: 8,
+            alignment: 'center',
+          }
+        }
+      }
+  
+      const pdfDoc = printer.createPdfKitDocument(docDefinitions);
+      //pdfDoc.pipe(fs.createWriteStream("Relatório.pdf"));
+      
+      const chunks = [];
+      
+      pdfDoc.on("data", (chunk)=> {
+        chunks.push(chunk);
+      })
+
+      pdfDoc.end();
+
+      pdfDoc.on("end", () => {
+        const result = Buffer.concat(chunks);
+        res.contentType("application/pdf");
+        res.end(result);
+      })
+     
+      //return res.send("Relatório Concluido")
+  
     }catch(err){
       return res.status(500).json(err.message);
     }

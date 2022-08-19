@@ -191,7 +191,7 @@ class EmprestimoController {
         rows.push(emprestimo.Aluno.nome);
         rows.push(emprestimo.Instrumento.descricao);
         rows.push(moment(emprestimo.dataEmprestimo).format("DD/MM/YYYY"));
-        rows.push(moment(emprestimo.dataDevolucao).format("DD/MM/YYYY"));
+        rows.push(emprestimo.dataDevolucao ? moment(emprestimo.dataDevolucao).format("DD/MM/YYYY") : "-");
         body.push(rows);
       }
 
@@ -302,7 +302,7 @@ class EmprestimoController {
         rows.push(emprestimo.Aluno.nome);
         rows.push(emprestimo.Instrumento.descricao);
         rows.push(moment(emprestimo.dataEmprestimo).format("DD/MM/YYYY"));
-        rows.push(moment(emprestimo.dataDevolucao).format("DD/MM/YYYY"));
+        rows.push(emprestimo.dataDevolucao ? moment(emprestimo.dataDevolucao).format("DD/MM/YYYY") : "-");
         body.push(rows);
       }
 
@@ -389,11 +389,15 @@ class EmprestimoController {
         include: [
           {
             model: database.Alunos,
-            attributes: ['nome']
+            attributes: ['nome', 'cpf'],
+            include: {
+              model: database.Enderecos,
+              attributes: ['logradouro', 'numero', 'bairro', 'cep', 'cidade']
+            }
           },
           {
             model: database.Instrumentos,
-            attributes: ['descricao']
+            attributes: ['descricao', 'numeroSerie', 'marca']
           }
         ]
       });
@@ -413,7 +417,16 @@ class EmprestimoController {
       
       let idEmprestimo = (emprestimo.id);
       let nomeAluno = (emprestimo.Aluno.nome);
+      let cpfAluno = (emprestimo.Aluno.cpf);
+      let endereco = (
+        emprestimo.Aluno.Endereco.logradouro + ", " +
+        emprestimo.Aluno.Endereco.numero + ", " +
+        emprestimo.Aluno.Endereco.bairro + ", " +
+        emprestimo.Aluno.Endereco.cidade
+      );
       let nomeInstrumento = (emprestimo.Instrumento.descricao);
+      let numeroSerie = (emprestimo.Instrumento.numeroSerie);
+      let marca = (emprestimo.Instrumento.marca);
       let dataEmprestimo = (moment(emprestimo.dataEmprestimo).format("DD/MM/YYYY"));
       let dataDevolucao = (moment(emprestimo.dataDevolucao).format("DD/MM/YYYY"));
       
@@ -426,13 +439,13 @@ class EmprestimoController {
           },
           {
             stack: [
-              "LYRA CARLOS GOMES\n\n Registro de Empréstimo de Instrumento",
+              "ESCOLA DE MÚSICA LYRA CARLOS GOMES\n\n Registro de Empréstimo de Instrumento",
             ],
             style: 'header'
           },
           {
             text: [
-              `Registra-se na data do dia ${dataEmprestimo} o empréstimo do instrumento `, {text: nomeInstrumento, bold: true} , ` para o aluno `, {text: nomeAluno, bold: true}, `. O aluno se responsabilizará pelo zelo, cuidado e manutenabilidade do instrumento durante o período de emprestimo do instrumento.  
+              `Registra-se na data do dia ${dataEmprestimo} que o(a) aluno(a) `, {text: nomeAluno, bold: true}, ` portador do CPF nº `, {text: cpfAluno, bold: true}, ` residente no endereço "`,{text: endereco},`" compormete-se a assumir total responsabilidade por quaisquer danos que eventualmente possam ocorrer com o instrumento `, {text: nomeInstrumento}, ` numero de série `, {text: numeroSerie}, ` da marca `, {text: marca}, `, assim como fazer-se presente nas aulas, ensaios e apresntações da Lyra Carlos Gomes.
               `
             ],
             style: 'body'
@@ -448,6 +461,9 @@ class EmprestimoController {
               }
             ]
           },
+          {
+            text: '__________________________________\n\nData', alignment: 'center', style: 'space'
+          },
           
         ],
         footer: [{text: "Relatório SysLyra", style: "footer"}],
@@ -457,6 +473,9 @@ class EmprestimoController {
             bold: true,
             alignment: 'center',
             margin: [0, 60, 0, 120]
+          },
+          space: {
+            margin: [0, 100, 0, 0]
           },
           dateRight: {
             alignment: 'right',

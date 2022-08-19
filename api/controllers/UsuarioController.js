@@ -66,6 +66,8 @@ class UsuarioController {
   static async atualizarUsuario(req, res){
     const id = req.params.id;
     const infos = req.body;
+    console.log(infos);
+    infos.senha = await bcrypt.hash(infos.senha, 8);
 
     try{
       await database.Usuarios.update(infos, 

@@ -5,8 +5,10 @@ const AuthMiddleware = require('../middlewares/authMiddleware')
 
 const router = Router()
 router
+.get('/alunos/rel', AlunoController.listarAlunosRelatorio)
  .get('/alunos', AuthMiddleware, AlunoController.listarAlunos)
  .get('/alunos/:id', AuthMiddleware, AlunoController.listarAlunoPorId)
+
  .post('/alunos', AuthMiddleware, AlunoController.criarAluno)
  .put('/alunos/:id', AuthMiddleware, AlunoController.atualizarAluno)
  .delete('/alunos/:id', AuthMiddleware, AlunoController.excluirAluno)
